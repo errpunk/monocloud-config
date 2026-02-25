@@ -1,13 +1,32 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
+
+// aliDNSClient is an HTTP client that forces DNS resolution through
+// Alibaba Public DNS (223.5.5.5), bypassing any system or VPN DNS.
+var aliDNSClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Resolver: &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+					return (&net.Dialer{}).DialContext(ctx, "udp", "223.5.5.5:53")
+				},
+			},
+		}).DialContext,
+	},
+}
 
 // Fetch downloads the Clash subscription from MONOCLOUD_URL env var and returns
 // the extracted proxies, proxy-groups, and rules.
@@ -24,7 +43,7 @@ func Fetch() (*ClashConfig, error) {
 	// monocloud requires clash.meta as user-agent, otherwise it returns an error
 	req.Header.Set("User-Agent", "clash.meta")
 
-	client := &http.Client{}
+	client := aliDNSClient
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download subscription: %w", err)
