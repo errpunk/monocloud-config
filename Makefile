@@ -17,13 +17,13 @@ build-linux:
 
 # Build image for the local platform (fast, for testing)
 docker-build:
-	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE):$(VERSION) -t $(IMAGE):latest .
+	docker build --build-arg VERSION=$(DOCKER_VERSION) -t $(IMAGE):$(DOCKER_VERSION) -t $(IMAGE):latest .
 
 # Build and push multi-platform image (linux/amd64 + linux/arm64)
 docker-push:
 	docker buildx build --platform linux/amd64,linux/arm64 \
-		--build-arg VERSION=$(VERSION) \
-		-t $(IMAGE):$(VERSION) -t $(IMAGE):latest \
+		--build-arg VERSION=$(DOCKER_VERSION) \
+		-t $(IMAGE):$(DOCKER_VERSION) -t $(IMAGE):latest \
 		--push .
 
 test:
