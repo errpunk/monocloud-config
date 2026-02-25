@@ -15,6 +15,7 @@ services:
 
   # ── monocloud-config ──────────────────────────────────────────────────────
   monocloud-config:
+    image: ghcr.io/errpunk/monocloud-config:latest
     build: .
     container_name: monocloud-config
     restart: unless-stopped

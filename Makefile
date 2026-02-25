@@ -1,8 +1,7 @@
 BIN := bin/monocloud-config
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-DOCKER_VERSION := $(shell git describe --tags --always 2>/dev/null || echo dev)
 LDFLAGS := -ldflags "-X main.Version=$(VERSION)"
-IMAGE := errpunk/monocloud-config
+IMAGE := ghcr.io/errpunk/monocloud-config
 
 .PHONY: build build-linux docker-build docker-push test run clean
 
@@ -17,13 +16,13 @@ build-linux:
 
 # Build image for the local platform (fast, for testing)
 docker-build:
-	docker build --build-arg VERSION=$(DOCKER_VERSION) -t $(IMAGE):$(DOCKER_VERSION) -t $(IMAGE):latest .
+	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE):$(VERSION) -t $(IMAGE):latest .
 
 # Build and push multi-platform image (linux/amd64 + linux/arm64)
 docker-push:
 	docker buildx build --platform linux/amd64,linux/arm64 \
-		--build-arg VERSION=$(DOCKER_VERSION) \
-		-t $(IMAGE):$(DOCKER_VERSION) -t $(IMAGE):latest \
+		--build-arg VERSION=$(VERSION) \
+		-t $(IMAGE):$(VERSION) -t $(IMAGE):latest \
 		--push .
 
 test:
