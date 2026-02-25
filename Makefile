@@ -15,14 +15,14 @@ build-linux:
 	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(BIN)-linux-arm64 .
 
 # Build image for the local platform (fast, for testing)
-docker-build:
-	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE):$(VERSION) -t $(IMAGE):latest .
+docker-build: clean
+	docker build --build-arg VERSION=$(DOCKER_VERSION) -t $(IMAGE):$(DOCKER_VERSION) -t $(IMAGE):latest .
 
 # Build and push multi-platform image (linux/amd64 + linux/arm64)
-docker-push:
+docker-push: clean
 	docker buildx build --platform linux/amd64,linux/arm64 \
-		--build-arg VERSION=$(VERSION) \
-		-t $(IMAGE):$(VERSION) -t $(IMAGE):latest \
+		--build-arg VERSION=$(DOCKER_VERSION) \
+		-t $(IMAGE):$(DOCKER_VERSION) -t $(IMAGE):latest \
 		--push .
 
 test:
