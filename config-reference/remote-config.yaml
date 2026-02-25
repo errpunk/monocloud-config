@@ -1,0 +1,62 @@
+port: 7890
+socks-port: 7891
+allow-lan: false
+mode: Rule
+log-level: info
+external-controller: 127.0.0.1:9090
+secret: ""
+
+proxies:
+  - {name: "🇭🇰 HK-1", server: hk1.example.com, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: YOUR_PASSWORD, udp: true}
+  - {name: "🇯🇵 JP-1", server: jp1.example.com, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: YOUR_PASSWORD, udp: true}
+  - {name: "🇺🇸 US-1", server: us1.example.com, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: YOUR_PASSWORD, udp: true}
+  - {name: "🇸🇬 SG-1", server: sg1.example.com, port: 443, type: ss, cipher: chacha20-ietf-poly1305, password: YOUR_PASSWORD, udp: true}
+
+proxy-groups:
+  - name: Proxy
+    type: select
+    proxies:
+      - "🇭🇰 HK-1"
+      - "🇯🇵 JP-1"
+      - "🇺🇸 US-1"
+      - "🇸🇬 SG-1"
+
+  - name: AI
+    type: select
+    proxies:
+      - Proxy
+      - "🇺🇸 US-1"
+
+  - name: Streaming
+    type: select
+    proxies:
+      - Proxy
+      - "🇭🇰 HK-1"
+      - "🇯🇵 JP-1"
+
+  - name: MATCH
+    type: select
+    proxies:
+      - Proxy
+      - DIRECT
+
+rules:
+  # AI platforms
+  - DOMAIN-SUFFIX,openai.com,AI
+  - DOMAIN-SUFFIX,anthropic.com,AI
+  - DOMAIN-SUFFIX,claude.ai,AI
+  - DOMAIN,gemini.google.com,AI
+
+  # Streaming
+  - DOMAIN-SUFFIX,netflix.com,Streaming
+  - DOMAIN-SUFFIX,youtube.com,Streaming
+  - DOMAIN-SUFFIX,spotify.com,Streaming
+
+  # General proxy
+  - DOMAIN-KEYWORD,google,Proxy
+  - DOMAIN-SUFFIX,github.com,Proxy
+  - DOMAIN-SUFFIX,twitter.com,Proxy
+  - DOMAIN-SUFFIX,telegram.org,Proxy
+
+  # Fallback
+  - MATCH,MATCH

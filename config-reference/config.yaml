@@ -1,0 +1,29 @@
+tun:
+  enable: true
+  stack: system
+  auto-route: true
+  auto-detect-interface: true
+
+dns:
+  enable: true
+  ipv6: false
+  default-nameserver:
+    - 8.8.8.8
+    - 1.1.1.1
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
+
+proxy-server-nameserver:
+    - 8.8.8.8
+    - 1.1.1.1
+
+allow-lan: true
+external-controller: 0.0.0.0:9090
+secret: ""
+
+# proxies, proxy-groups, and rules below are automatically populated
+# by monocloud-config from the subscription URL.
+# proxies: []
+# proxy-groups: []
+# rules: []
