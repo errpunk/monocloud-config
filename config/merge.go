@@ -4,33 +4,50 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
-// Merge reads the local config file at configPath, replaces proxies/proxy-groups/rules
-// with those from remote, and writes the result back to configPath.
+// remoteKeys are the keys that will be stripped from the local config
+// and re-appended at the end with values from the remote subscription.
+var remoteKeys = []string{"proxies", "proxy-groups", "rules"}
+
+// Merge reads the local config file at configPath, removes any existing
+// proxies/proxy-groups/rules entries (preserving all other keys and their
+// original order), then appends the remote values at the end.
 func Merge(configPath string, remote *ClashConfig) error {
-	// Read local config as a generic map to preserve all existing fields
 	localBytes, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to read local config %q: %w", configPath, err)
 	}
 
-	var localMap map[string]any
+	// MapSlice preserves insertion order — critical for stable YAML output.
+	var localMap yaml.MapSlice
 	if err := yaml.Unmarshal(localBytes, &localMap); err != nil {
 		return fmt.Errorf("failed to parse local config YAML: %w", err)
 	}
 
-	if localMap == nil {
-		localMap = make(map[string]any)
+	// Remove any existing proxies / proxy-groups / rules so we can
+	// re-append them at the very end.
+	skipSet := make(map[string]bool, len(remoteKeys))
+	for _, k := range remoteKeys {
+		skipSet[k] = true
+	}
+	filtered := localMap[:0]
+	for _, item := range localMap {
+		if key, ok := item.Key.(string); ok && skipSet[key] {
+			continue
+		}
+		filtered = append(filtered, item)
 	}
 
-	// Overwrite with remote values
-	localMap["proxies"] = remote.Proxies
-	localMap["proxy-groups"] = remote.ProxyGroups
-	localMap["rules"] = remote.Rules
+	// Append remote fields at the end, in a fixed order.
+	filtered = append(filtered,
+		yaml.MapItem{Key: "proxies", Value: remote.Proxies},
+		yaml.MapItem{Key: "proxy-groups", Value: remote.ProxyGroups},
+		yaml.MapItem{Key: "rules", Value: remote.Rules},
+	)
 
-	out, err := yaml.Marshal(localMap)
+	out, err := yaml.Marshal(filtered)
 	if err != nil {
 		return fmt.Errorf("failed to marshal merged config: %w", err)
 	}

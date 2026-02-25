@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 func TestMerge(t *testing.T) {
-	// Create a temp local config file (mimics example/config.yaml)
+	// Local config with specific key order we want to preserve
 	localConfig := `tun:
   enable: true
   stack: system
@@ -28,7 +28,6 @@ external-controller: 0.0.0.0:9090
 	}
 	tmpFile.Close()
 
-	// Build a fake remote config
 	remote := &ClashConfig{
 		Proxies: []any{
 			map[string]any{"name": "HK1", "type": "ss", "server": "hk1.example.com", "port": 443},
@@ -46,47 +45,43 @@ external-controller: 0.0.0.0:9090
 		t.Fatalf("Merge returned error: %v", err)
 	}
 
-	// Read back and verify
 	resultBytes, err := os.ReadFile(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("failed to read merged file: %v", err)
 	}
 
-	var result map[string]any
+	// Parse with MapSlice to verify order
+	var result yaml.MapSlice
 	if err := yaml.Unmarshal(resultBytes, &result); err != nil {
 		t.Fatalf("failed to parse merged YAML: %v", err)
 	}
 
-	// Check original fields preserved
-	if result["allow-lan"] == nil {
-		t.Error("expected 'allow-lan' to be preserved after merge")
-	}
-	if result["external-controller"] == nil {
-		t.Error("expected 'external-controller' to be preserved after merge")
+	// Collect keys in order
+	keys := make([]string, 0, len(result))
+	for _, item := range result {
+		keys = append(keys, item.Key.(string))
 	}
 
-	// Check remote fields merged
-	proxies, ok := result["proxies"].([]any)
-	if !ok || len(proxies) != 1 {
-		t.Errorf("expected 1 proxy, got %v", result["proxies"])
+	// Original keys must come first
+	expectedPrefix := []string{"tun", "dns", "allow-lan", "external-controller"}
+	for i, k := range expectedPrefix {
+		if i >= len(keys) || keys[i] != k {
+			t.Errorf("key order wrong at position %d: want %q, got %v", i, k, keys)
+		}
 	}
 
-	rules, ok := result["rules"].([]any)
-	if !ok || len(rules) != 2 {
-		t.Errorf("expected 2 rules, got %v", result["rules"])
-	}
-
-	proxyGroups, ok := result["proxy-groups"].([]any)
-	if !ok || len(proxyGroups) != 1 {
-		t.Errorf("expected 1 proxy-group, got %v", result["proxy-groups"])
+	// Remote keys must be at the end
+	expectedSuffix := []string{"proxies", "proxy-groups", "rules"}
+	offset := len(keys) - len(expectedSuffix)
+	for i, k := range expectedSuffix {
+		if keys[offset+i] != k {
+			t.Errorf("remote key order wrong at position %d: want %q, got %q", offset+i, k, keys[offset+i])
+		}
 	}
 }
 
 func TestMerge_MissingLocalFile(t *testing.T) {
-	remote := &ClashConfig{
-		Proxies: []any{},
-		Rules:   []string{},
-	}
+	remote := &ClashConfig{Proxies: []any{}, Rules: []string{}}
 	err := Merge("/nonexistent/path/config.yaml", remote)
 	if err == nil {
 		t.Error("expected error for missing local config file")

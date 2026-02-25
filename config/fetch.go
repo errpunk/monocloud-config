@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 // aliDNSClient is an HTTP client that forces DNS resolution through
@@ -43,8 +43,7 @@ func Fetch() (*ClashConfig, error) {
 	// monocloud requires clash.meta as user-agent, otherwise it returns an error
 	req.Header.Set("User-Agent", "clash.meta")
 
-	client := aliDNSClient
-	resp, err := client.Do(req)
+	resp, err := aliDNSClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download subscription: %w", err)
 	}
