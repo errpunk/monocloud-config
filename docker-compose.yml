@@ -1,0 +1,32 @@
+services:
+
+  # ── Mihomo (Clash Meta) ────────────────────────────────────────────────────
+  mihomo:
+    image: ghcr.io/metacubex/mihomo:latest
+    container_name: mihomo
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    network_mode: host # TUN mode requires host network
+    volumes:
+      - mihomo-config:/etc/mihomo
+    environment:
+      - TZ=Asia/Shanghai
+
+  # ── monocloud-config ──────────────────────────────────────────────────────
+  monocloud-config:
+    build: .
+    container_name: monocloud-config
+    restart: unless-stopped
+    depends_on:
+      - mihomo
+    volumes:
+      - mihomo-config:/etc/mihomo # shares the same config directory
+    environment:
+      - MONOCLOUD_URL=${MONOCLOUD_URL}
+      - CONFIG_PATH=/etc/mihomo/config.yaml
+      - UPDATE_INTERVAL=${UPDATE_INTERVAL:-1h}
+      - TZ=Asia/Shanghai
+
+volumes:
+  mihomo-config:
