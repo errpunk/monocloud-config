@@ -1,61 +1,70 @@
 # monocloud-config
 
-## 背景
+从 monocloud 订阅链接下载 Clash 配置，提取 `proxies`、`proxy-groups`、`rules`，自动合并到本地 `config.yaml`，并作为后台守护进程定时更新。
 
-monocloud 是一个代理服务器机场，它提供了 clash 的配置文件订阅链接。
+## 快速开始
 
-它的订阅连接下载的内容包括了：
+### 使用 Docker Compose（推荐）
 
-```yaml
-port: 7890
-socks-port: 7891
-allow-lan: false
-mode: rule
-log-level: info
-external-controller: :9090
+```bash
+# 1. 复制环境变量模板
+cp .env.example .env
 
-# 节点列表
-proxies:
+# 2. 填写订阅链接
+#    打开 .env，设置 MONOCLOUD_URL=https://your-subscription-link
 
-# 规则组
-proxy-groups:
-  - name: Proxy
-    type: select
-    proxies:
-      - 🇭🇰 Relay-HK1
-      - 🇭🇰 Relay-HK2
-      - 🇭🇰 Relay-HK3
-      - 🇭🇰 Relay-HK4    
-
-# 规则
-rules:
-  - 'DOMAIN-KEYWORD,google,Proxy'
-
+# 3. 启动服务
+docker compose up -d
 ```
 
-而我需要它的：
-- proxies 节点列表
-- proxy-groups 规则组
-- rules 规则
+`monocloud-config` 会与 `mihomo` 共享同一个配置目录，启动时立即更新，之后按 `UPDATE_INTERVAL` 定时刷新。
 
+参考配置见 [config-reference/](config-reference/)。
 
-## 目标
+---
 
-将 monocloud 的订阅链接下载的内容，提取出 proxies、proxy-groups、rules，然后合并到我本地的 config.yaml 中。
+### 手动运行（二进制）
 
+从 [Releases](https://github.com/errpunk/monocloud-config/releases) 或 [GitHub Package](https://ghcr.io/errpunk/monocloud-config) 下载，也可自行编译：
 
-## 步骤
+```bash
+make build          # 编译当前平台
+make build-linux    # 交叉编译 linux/amd64 + arm64（输出到 bin/）
+```
 
-1. 从环境变量中获取 monocloud 的订阅链接。
-2. 下载 monocloud 的订阅链接，得到一个 yaml 文件。
-3. 从 yaml 文件中提取出 proxies、proxy-groups、rules。
-4. 合并到我本地的 config.yaml 中。
-5. 验证 config.yaml 是否正确。
+运行：
+
+```bash
+export MONOCLOUD_URL="https://your-subscription-link"
+export CONFIG_PATH="/etc/mihomo/config.yaml"   # 默认 config.yaml
+export UPDATE_INTERVAL="1h"                    # 默认 1h，支持 30m / 6h 等
+
+./bin/monocloud-config          # 持续运行，定时更新
+./bin/monocloud-config -v       # 打印版本号
+```
+
+---
 
 ## 环境变量
 
-- MONOCLOUD_URL: monocloud 的订阅链接
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `MONOCLOUD_URL` | ✅ | — | monocloud 订阅链接 |
+| `CONFIG_PATH` | — | `config.yaml` | 本地 Clash 配置文件路径 |
+| `UPDATE_INTERVAL` | — | `1h` | 更新间隔，Go duration 格式（如 `30m`、`6h`） |
 
-## 注意
+## Docker 镜像
 
-从订阅链接下载规则的时候，要设置 user-agent 为 clash.meta，否则会下载失败。
+```bash
+docker pull ghcr.io/errpunk/monocloud-config:latest
+```
+
+支持 `linux/amd64` 和 `linux/arm64`。
+
+## 开发
+
+```bash
+make test          # 运行单元测试
+make docker-build  # 构建本地镜像
+make docker-push   # 构建并推送多平台镜像到 ghcr.io
+```
