@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,9 @@ import (
 
 	"github.com/errpunk/monocloud-config/config"
 )
+
+// Version is injected at build time via -ldflags.
+var Version = "dev"
 
 func update(configPath string) error {
 	log.Println("Fetching remote subscription...")
@@ -28,6 +32,13 @@ func update(configPath string) error {
 }
 
 func main() {
+	showVersion := flag.Bool("v", false, "print version and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Println("monocloud-config", Version)
+		return
+	}
+
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "config.yaml"
