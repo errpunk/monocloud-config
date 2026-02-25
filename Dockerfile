@@ -4,7 +4,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o monocloud-config .
+ARG VERSION=dev
+RUN go build -ldflags "-X main.Version=${VERSION}" -o monocloud-config .
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata
